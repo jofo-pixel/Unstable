@@ -72,6 +72,11 @@ public:
 
     virtual void drawScreen() {}// = 0;
 
+    // bottom screen popup (used with "Top only" screen sizing)
+    void toggleBottomPopup();
+    void setBottomPopup(bool visible);
+    bool isBottomPopupVisible() const { return popupVisible; }
+
 private slots:
     void onScreenLayoutChanged();
     void onAutoScreenSizingChanged(int sizing);
@@ -91,6 +96,10 @@ protected:
     int screenAspectTop, screenAspectBot;
 
     int autoScreenSizing;
+
+    bool popupVisible = false;
+    int popupSize = 50;     // percent
+    int popupAnchor = 0;    // see PopupAnchor
 
     ScreenLayout layout;
     float screenMatrix[kMaxScreenTransforms][6];

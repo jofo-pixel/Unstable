@@ -105,6 +105,24 @@ void M23_Transform(float* m, float& x, float& y)
     y = (vx * m[1]) + (vy * m[3]) + m[5];
 }
 
+// out = inverse of affine 2x3 matrix m (same layout as above)
+bool M23_Invert(float* out, const float* m)
+{
+    float det = (m[0] * m[3]) - (m[2] * m[1]);
+    if (fabsf(det) < 1e-12f) return false;
+
+    float inv = 1.f / det;
+    float r[6];
+    r[0] =  m[3] * inv;
+    r[1] = -m[1] * inv;
+    r[2] = -m[2] * inv;
+    r[3] =  m[0] * inv;
+    r[4] = -((r[0] * m[4]) + (r[2] * m[5]));
+    r[5] = -((r[1] * m[4]) + (r[3] * m[5]));
+    memcpy(out, r, sizeof(r));
+    return true;
+}
+
 
 ScreenLayout::ScreenLayout()
 {
@@ -118,6 +136,16 @@ ScreenLayout::ScreenLayout()
     HybEnable = false;
     HybScreen = 0;
     HybPrevTouchScreen = 0;
+    PopupVisible = false;
+    PopupSize = 0.5f;
+    PopupAnchor = popupAnchor_BottomRight;
+}
+
+void ScreenLayout::SetPopup(bool visible, float size, int anchor)
+{
+    PopupVisible = visible;
+    PopupSize = std::clamp(size, 0.1f, 1.f);
+    PopupAnchor = (anchor >= 0 && anchor < popupAnchor_MAX) ? anchor : popupAnchor_BottomRight;
 }
 
 void ScreenLayout::Setup(int screenWidth, int screenHeight,
@@ -443,6 +471,57 @@ void ScreenLayout::Setup(int screenWidth, int screenHeight,
             M23_Scale(HybTouchMtx, 1.f/hybScale);
             M23_Multiply(HybTouchMtx, rotmtx, HybTouchMtx);
         }
+    }
+
+    // bottom screen popup: overlay the bottom screen over the full-size top screen
+    if (PopupVisible && !HybEnable && sizing == screenSizing_TopOnly)
+    {
+        M23_Identity(BotScreenMtx);
+        M23_Translate(BotScreenMtx, -256/2, -192/2);
+        M23_Scale(BotScreenMtx, botAspect, 1);
+
+        float rotmtx[6];
+        M23_Identity(rotmtx);
+        M23_RotateFast(rotmtx, rotation);
+        M23_Multiply(BotScreenMtx, rotmtx, BotScreenMtx);
+
+        // size of the (rotated) bottom screen at scale 1
+        float bw = (rotation % 2) ? 192.f : 256.f * botAspect;
+        float bh = (rotation % 2) ? 256.f * botAspect : 192.f;
+
+        float scale = std::min(screenWidth / bw, screenHeight / bh) * PopupSize;
+        if (integerScale && scale >= 1.f)
+            scale = floorf(scale);
+
+        M23_Scale(BotScreenMtx, scale);
+
+        float pw = bw * scale;
+        float ph = bh * scale;
+        float margin = (PopupAnchor == popupAnchor_Center) ? 0.f
+                     : std::min(screenWidth, screenHeight) * 0.02f;
+        float marginX = std::max(0.f, std::min(margin, (screenWidth - pw) / 2.f));
+        float marginY = std::max(0.f, std::min(margin, (screenHeight - ph) / 2.f));
+
+        bool right = PopupAnchor == popupAnchor_BottomRight || PopupAnchor == popupAnchor_TopRight;
+        bool bottom = PopupAnchor == popupAnchor_BottomRight || PopupAnchor == popupAnchor_BottomLeft;
+
+        float cx, cy;
+        if (PopupAnchor == popupAnchor_Center)
+        {
+            cx = screenWidth / 2.f;
+            cy = screenHeight / 2.f;
+        }
+        else
+        {
+            cx = right ? (screenWidth - marginX - pw / 2.f) : (marginX + pw / 2.f);
+            cy = bottom ? (screenHeight - marginY - ph / 2.f) : (marginY + ph / 2.f);
+        }
+
+        M23_Translate(BotScreenMtx, cx, cy);
+
+        BotEnable = true;
+        if (!M23_Invert(TouchMtx, BotScreenMtx))
+            M23_Identity(TouchMtx);
     }
 }
 

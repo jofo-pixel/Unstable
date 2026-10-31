@@ -48,6 +48,16 @@ enum ScreenSizing
     screenSizing_MAX,
 };
 
+enum PopupAnchor
+{
+    popupAnchor_BottomRight,
+    popupAnchor_BottomLeft,
+    popupAnchor_TopRight,
+    popupAnchor_TopLeft,
+    popupAnchor_Center,
+    popupAnchor_MAX,
+};
+
 const int kMaxScreenTransforms = 3;
 
 class ScreenLayout
@@ -74,6 +84,14 @@ public:
                bool swapScreens,
                float topAspect, float botAspect);
 
+    // bottom screen popup (only applies with screenSizing_TopOnly):
+    // the bottom screen is overlaid on top of the top screen
+    // * visible: whether the popup is currently shown
+    // * size: fraction (0..1) of the largest size the bottom screen could have in the window
+    // * anchor: where to place it (see PopupAnchor)
+    // call before Setup()
+    void SetPopup(bool visible, float size, int anchor);
+
     // get a 2x3 transform matrix for each screen and whether it's a top or bottom screen
     // note: the transform assumes an origin point at the top left of the display,
     // X going right and Y going down
@@ -99,6 +117,10 @@ private:
     bool HybEnable;
     int HybScreen;
     int HybPrevTouchScreen; // 0:unknown, 1:buttom screen, 2:hybrid screen
+
+    bool PopupVisible;
+    float PopupSize;
+    int PopupAnchor;
 };
 
 #endif // SCREENLAYOUT_H

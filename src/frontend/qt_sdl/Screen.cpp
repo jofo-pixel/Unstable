@@ -129,6 +129,26 @@ void ScreenPanel::loadConfig()
     integerScaling = cfg.GetBool("IntegerScaling");
     screenAspectTop = cfg.GetInt("ScreenAspectTop");
     screenAspectBot = cfg.GetInt("ScreenAspectBot");
+    popupSize = cfg.GetInt("PopupSize");
+    popupAnchor = cfg.GetInt("PopupAnchor");
+}
+
+void ScreenPanel::setBottomPopup(bool visible)
+{
+    if (visible == popupVisible) return;
+    popupVisible = visible;
+
+    int sizing = screenSizing;
+    if (sizing == screenSizing_Auto) sizing = autoScreenSizing;
+    if (sizing != screenSizing_TopOnly && popupVisible)
+        osdAddMessage(0, "Bottom screen popup needs screen sizing 'Top only'");
+
+    setupScreenLayout();
+}
+
+void ScreenPanel::toggleBottomPopup()
+{
+    setBottomPopup(!popupVisible);
 }
 
 void ScreenPanel::setFilter(bool filter)
@@ -168,6 +188,7 @@ void ScreenPanel::setupScreenLayout()
     if (aspectBot == 0)
         aspectBot = ((float) w / h) / (4.f / 3.f);
 
+    layout.SetPopup(popupVisible, popupSize / 100.f, popupAnchor);
     layout.Setup(w, h,
                 static_cast<ScreenLayoutType>(screenLayout),
                 static_cast<ScreenRotation>(screenRotation),

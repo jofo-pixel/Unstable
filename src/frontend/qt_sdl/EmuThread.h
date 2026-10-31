@@ -158,6 +158,9 @@ signals:
     void swapScreensToggle();
     void screenEmphasisToggle();
 
+    void bottomPopupToggle();
+    void bottomPopupSet(bool visible);
+
     void syncVolumeLevel();
 
 private:

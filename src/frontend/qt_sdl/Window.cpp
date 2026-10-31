@@ -528,6 +528,39 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 connect(actIntegerScaling, &QAction::triggered, this, &MainWindow::onChangeIntegerScaling);
             }
             {
+                QMenu * submenu = menu->addMenu("Bottom screen popup");
+
+                actBottomPopup = submenu->addAction("Show popup (needs 'Top only')");
+                actBottomPopup->setCheckable(true);
+                connect(actBottomPopup, &QAction::triggered, this, &MainWindow::onBottomPopupSet);
+
+                submenu->addSeparator();
+
+                grpPopupSize = new QActionGroup(submenu);
+                const int popupsizes[] = {35, 45, 55, 70, 100};
+                for (int i = 0; i < 5; i++)
+                {
+                    actPopupSize[i] = submenu->addAction(QString("Size: %1%").arg(popupsizes[i]));
+                    actPopupSize[i]->setActionGroup(grpPopupSize);
+                    actPopupSize[i]->setData(QVariant(popupsizes[i]));
+                    actPopupSize[i]->setCheckable(true);
+                }
+                connect(grpPopupSize, &QActionGroup::triggered, this, &MainWindow::onChangePopupSize);
+
+                submenu->addSeparator();
+
+                grpPopupAnchor = new QActionGroup(submenu);
+                const char* popupanchors[] = {"Bottom right", "Bottom left", "Top right", "Top left", "Center"};
+                for (int i = 0; i < popupAnchor_MAX; i++)
+                {
+                    actPopupAnchor[i] = submenu->addAction(QString("Position: ") + popupanchors[i]);
+                    actPopupAnchor[i]->setActionGroup(grpPopupAnchor);
+                    actPopupAnchor[i]->setData(QVariant(i));
+                    actPopupAnchor[i]->setCheckable(true);
+                }
+                connect(grpPopupAnchor, &QActionGroup::triggered, this, &MainWindow::onChangePopupAnchor);
+            }
+            {
                 QMenu * submenu = menu->addMenu("Aspect ratio");
                 grpScreenAspectTop = new QActionGroup(submenu);
                 grpScreenAspectBot = new QActionGroup(submenu);
@@ -715,6 +748,14 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
         actScreenSizing[windowCfg.GetInt("ScreenSizing")]->setChecked(true);
         actIntegerScaling->setChecked(windowCfg.GetBool("IntegerScaling"));
 
+        {
+            int popupSize = windowCfg.GetInt("PopupSize");
+            for (int i = 0; i < 5; i++)
+                actPopupSize[i]->setChecked(actPopupSize[i]->data().toInt() == popupSize);
+            actPopupAnchor[windowCfg.GetInt("PopupAnchor")]->setChecked(true);
+            actBottomPopup->setChecked(false);
+        }
+
         actScreenSwap->setChecked(windowCfg.GetBool("ScreenSwap"));
 
         int aspectTop = windowCfg.GetInt("ScreenAspectTop");
@@ -855,7 +896,10 @@ void MainWindow::createScreenPanel()
     setCentralWidget(panel);
 
     if (hasMenu)
+    {
         actScreenFiltering->setEnabled(hasOGL);
+        actBottomPopup->setChecked(false); // new panel starts with the popup hidden
+    }
     panel->osdSetEnabled(showOSD);
 
     connect(emuThread, SIGNAL(windowUpdate()), panel, SLOT(repaint()));
@@ -2196,6 +2240,29 @@ void MainWindow::onScreenEmphasisToggled()
     windowCfg.SetInt("ScreenSizing", currentSizing);
     actScreenSizing[currentSizing]->setChecked(true);
 
+    emit screenLayoutChange();
+}
+
+void MainWindow::onBottomPopupToggled()
+{
+    onBottomPopupSet(!panel->isBottomPopupVisible());
+}
+
+void MainWindow::onBottomPopupSet(bool visible)
+{
+    panel->setBottomPopup(visible);
+    if (hasMenu) actBottomPopup->setChecked(visible);
+}
+
+void MainWindow::onChangePopupSize(QAction* act)
+{
+    windowCfg.SetInt("PopupSize", act->data().toInt());
+    emit screenLayoutChange();
+}
+
+void MainWindow::onChangePopupAnchor(QAction* act)
+{
+    windowCfg.SetInt("PopupAnchor", act->data().toInt());
     emit screenLayoutChange();
 }
 

@@ -52,6 +52,8 @@ DefaultList<int> DefaultInts =
     {"Instance*.Joystick", -1},
     {"Instance*.Window*.Width", 256},
     {"Instance*.Window*.Height", 384},
+    {"Instance*.Window*.PopupSize", 50},
+    {"Instance*.Window*.PopupAnchor", 0},
     {"Screen.VSyncInterval", 1},
     {"3D.Renderer", renderer3D_Software},
     {"3D.GL.ScaleFactor", 1},
@@ -89,6 +91,8 @@ RangeList IntRanges =
     {"Instance*.Window*.ScreenSizing", {0, screenSizing_MAX-1}},
     {"Instance*.Window*.ScreenAspectTop", {0, AspectRatiosNum-1}},
     {"Instance*.Window*.ScreenAspectBot", {0, AspectRatiosNum-1}},
+    {"Instance*.Window*.PopupSize", {10, 100}},
+    {"Instance*.Window*.PopupAnchor", {0, popupAnchor_MAX-1}},
     {"MP.AudioMode", {0, 2}},
     {"LAN.HostNumPlayers", {2, 16}},
 };

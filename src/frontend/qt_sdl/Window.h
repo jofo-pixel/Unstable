@@ -185,6 +185,11 @@ private slots:
     void onFullscreenToggled();
     void onScreenEmphasisToggled();
 
+    void onBottomPopupToggled();
+    void onBottomPopupSet(bool visible);
+    void onChangePopupSize(QAction* act);
+    void onChangePopupAnchor(QAction* act);
+
 private:
     virtual void closeEvent(QCloseEvent* event) override;
 
@@ -285,6 +290,11 @@ public:
     QActionGroup* grpScreenSizing;
     QAction* actScreenSizing[screenSizing_MAX];
     QAction* actIntegerScaling;
+    QAction* actBottomPopup;
+    QActionGroup* grpPopupSize;
+    QAction* actPopupSize[5];
+    QActionGroup* grpPopupAnchor;
+    QAction* actPopupAnchor[popupAnchor_MAX];
     QActionGroup* grpScreenAspectTop;
     QAction** actScreenAspectTop;
     QActionGroup* grpScreenAspectBot;
