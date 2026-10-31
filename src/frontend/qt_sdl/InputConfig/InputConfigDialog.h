@@ -25,6 +25,7 @@
 
 #include <QLabel>
 #include <QTimer>
+#include <QSlider>
 #include "Config.h"
 #include "EmuInstance.h"
 
@@ -177,6 +178,7 @@ private:
     int hkGeneralKeyMap[hk_general.size()], hkGeneralJoyMap[hk_general.size()];
     int hkPopupKeyMap[hk_popup.size()], hkPopupJoyMap[hk_popup.size()];
     QLabel* lblJoyMonitor = nullptr;
+    QSlider* sldCursorSpeed = nullptr;
     QTimer* joyMonitorTimer = nullptr;
     int joystickID;
 };

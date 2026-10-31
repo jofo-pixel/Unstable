@@ -175,6 +175,7 @@ public:
     std::atomic<bool> bottomScreenVisible{true};
     std::atomic<bool> popupCursorShown{false};
     std::atomic<int> popupCursorX{128}, popupCursorY{96};
+    std::atomic<int> popupCursorSpeed{5}; // 1..10, from config
 
     // mic start/stop control from core
     void micStart();

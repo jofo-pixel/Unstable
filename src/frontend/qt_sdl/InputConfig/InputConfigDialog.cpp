@@ -20,6 +20,8 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 #include <QTimer>
+#include <QSlider>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QKeyEvent>
 #include <QDebug>
@@ -95,6 +97,28 @@ InputConfigDialog::InputConfigDialog(QWidget* parent) : QDialog(parent), ui(new 
         QWidget* mappings = new QWidget();
         populatePage(mappings, hk_popup_labels, hkPopupKeyMap, hkPopupJoyMap);
         vl->addWidget(mappings, 1);
+
+        {
+            QHBoxLayout* hl = new QHBoxLayout();
+            QLabel* lbl = new QLabel("Cursor speed:");
+            sldCursorSpeed = new QSlider(Qt::Horizontal);
+            sldCursorSpeed->setRange(1, 10);
+            sldCursorSpeed->setPageStep(1);
+            sldCursorSpeed->setTickPosition(QSlider::TicksBelow);
+            sldCursorSpeed->setTickInterval(1);
+            sldCursorSpeed->setValue(instcfg.GetInt("PopupCursorSpeed"));
+            QLabel* val = new QLabel(QString::number(sldCursorSpeed->value()));
+            val->setMinimumWidth(20);
+            connect(sldCursorSpeed, &QSlider::valueChanged, this, [this, val](int v)
+            {
+                val->setText(QString::number(v));
+                emuInstance->popupCursorSpeed = v; // live preview while the dialog is open
+            });
+            hl->addWidget(lbl);
+            hl->addWidget(sldCursorSpeed, 1);
+            hl->addWidget(val);
+            vl->addLayout(hl);
+        }
 
         lblJoyMonitor = new QLabel();
         lblJoyMonitor->setWordWrap(true);
@@ -305,6 +329,8 @@ void InputConfigDialog::on_InputConfigDialog_accepted()
         i++;
     }
 
+    if (sldCursorSpeed) instcfg.SetInt("PopupCursorSpeed", sldCursorSpeed->value());
+
     instcfg.SetInt("JoystickID", joystickID);
     Config::Save();
 
@@ -317,6 +343,7 @@ void InputConfigDialog::on_InputConfigDialog_rejected()
 {
     Config::Table& instcfg = emuInstance->getLocalConfig();
     emuInstance->setJoystick(instcfg.GetInt("JoystickID"));
+    emuInstance->popupCursorSpeed = instcfg.GetInt("PopupCursorSpeed"); // undo live preview
 
     closeDlg();
 }

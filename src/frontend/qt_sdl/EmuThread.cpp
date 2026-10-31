@@ -25,6 +25,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cmath>
 
 #include <SDL2/SDL.h>
 
@@ -125,18 +126,25 @@ void EmuThread::updatePopupCursor()
     float dx = emuInstance->hotkeyAnalog(HK_PopupCursorRight) - emuInstance->hotkeyAnalog(HK_PopupCursorLeft);
     float dy = emuInstance->hotkeyAnalog(HK_PopupCursorDown) - emuInstance->hotkeyAnalog(HK_PopupCursorUp);
 
+    // response curve: small deflections stay slow and precise, full deflection is fast
+    auto curve = [](float v) { return (v < 0 ? -1.f : 1.f) * powf(fabsf(v), 1.8f); };
+    dx = curve(dx);
+    dy = curve(dy);
+
     // time-based so the speed doesn't depend on fast forward / pause
     float dt = (float)std::clamp(now - cursorLastUpdate, 0.0, 0.1);
     cursorLastUpdate = now;
 
     if (dx != 0.f || dy != 0.f)
     {
-        // speed in DS pixels per second: 150 at full deflection,
-        // ramping up to 2x that after holding for about a second
+        // speed in DS pixels per second at full deflection:
+        // level 1 = 120, level 5 (default) = 360, level 10 = 660
+        // ramps up to 1.5x after holding for about a second
+        float speed = 60.f + 60.f * emuInstance->popupCursorSpeed;
         cursorHoldTime += dt;
-        float accel = std::min(1.f + cursorHoldTime, 2.f);
-        cursorX = std::clamp(cursorX + dx * 150.f * accel * dt, 0.f, 255.f);
-        cursorY = std::clamp(cursorY + dy * 150.f * accel * dt, 0.f, 191.f);
+        float accel = std::min(1.f + cursorHoldTime * 0.5f, 1.5f);
+        cursorX = std::clamp(cursorX + dx * speed * accel * dt, 0.f, 255.f);
+        cursorY = std::clamp(cursorY + dy * speed * accel * dt, 0.f, 191.f);
         cursorLastActive = now;
     }
     else

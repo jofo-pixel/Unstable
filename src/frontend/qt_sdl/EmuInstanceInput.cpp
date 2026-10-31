@@ -139,6 +139,8 @@ void EmuInstance::inputLoadConfig()
         hkJoyMapping[i] = joycfg.GetInt(hotkeyNames[i]);
     }
 
+    popupCursorSpeed = std::clamp(localCfg.GetInt("PopupCursorSpeed"), 1, 10);
+
     setJoystick(localCfg.GetInt("JoystickID"));
     SDL_UnlockMutex(joyMutex.get());
 }
