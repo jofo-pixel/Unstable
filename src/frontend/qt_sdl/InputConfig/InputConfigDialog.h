@@ -70,7 +70,12 @@ static constexpr std::initializer_list<int> hk_general =
     HK_VolumeDown,
     HK_AudioMuteToggle,
     HK_BottomPopupToggle,
-    HK_BottomPopupHold
+    HK_BottomPopupHold,
+    HK_PopupCursorUp,
+    HK_PopupCursorDown,
+    HK_PopupCursorLeft,
+    HK_PopupCursorRight,
+    HK_PopupCursorTouch
 };
 
 static constexpr std::initializer_list<const char*> hk_general_labels =
@@ -93,7 +98,12 @@ static constexpr std::initializer_list<const char*> hk_general_labels =
     "DSi Volume down",
     "Toggle audio mute",
     "Toggle bottom screen popup",
-    "Bottom screen popup (hold)"
+    "Bottom screen popup (hold)",
+    "Bottom screen cursor up",
+    "Bottom screen cursor down",
+    "Bottom screen cursor left",
+    "Bottom screen cursor right",
+    "Bottom screen cursor tap"
 };
 
 static_assert(hk_general.size() == hk_general_labels.size());

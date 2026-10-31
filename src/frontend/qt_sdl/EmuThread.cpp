@@ -107,6 +107,64 @@ void EmuThread::detachWindow(MainWindow* window)
     }
 }
 
+void EmuThread::updatePopupCursor()
+{
+    double now = (double)SDL_GetPerformanceCounter() / (double)SDL_GetPerformanceFrequency();
+
+    if (!emuInstance->bottomScreenVisible)
+    {
+        if (cursorTouching)
+        {
+            emuInstance->releaseScreen();
+            cursorTouching = false;
+        }
+        emuInstance->popupCursorShown = false;
+        return;
+    }
+
+    float dx = emuInstance->hotkeyAnalog(HK_PopupCursorRight) - emuInstance->hotkeyAnalog(HK_PopupCursorLeft);
+    float dy = emuInstance->hotkeyAnalog(HK_PopupCursorDown) - emuInstance->hotkeyAnalog(HK_PopupCursorUp);
+
+    // time-based so the speed doesn't depend on fast forward / pause
+    float dt = (float)std::clamp(now - cursorLastUpdate, 0.0, 0.1);
+    cursorLastUpdate = now;
+
+    if (dx != 0.f || dy != 0.f)
+    {
+        // speed in DS pixels per second: 150 at full deflection,
+        // ramping up to 2x that after holding for about a second
+        cursorHoldTime += dt;
+        float accel = std::min(1.f + cursorHoldTime, 2.f);
+        cursorX = std::clamp(cursorX + dx * 150.f * accel * dt, 0.f, 255.f);
+        cursorY = std::clamp(cursorY + dy * 150.f * accel * dt, 0.f, 191.f);
+        cursorLastActive = now;
+    }
+    else
+        cursorHoldTime = 0.f;
+
+    if (emuInstance->hotkeyPressed(HK_PopupCursorTouch))
+        cursorTouching = true;
+
+    if (cursorTouching)
+    {
+        if (emuInstance->hotkeyDown(HK_PopupCursorTouch))
+        {
+            emuInstance->touchScreen((int)cursorX, (int)cursorY);
+            cursorLastActive = now;
+        }
+        else
+        {
+            emuInstance->releaseScreen();
+            cursorTouching = false;
+        }
+    }
+
+    emuInstance->popupCursorX = (int)cursorX;
+    emuInstance->popupCursorY = (int)cursorY;
+    // hide the cursor after a few seconds without use
+    emuInstance->popupCursorShown = (now - cursorLastActive) < 4.0;
+}
+
 void EmuThread::run()
 {
     Config::Table& globalCfg = emuInstance->getGlobalConfig();
@@ -175,6 +233,8 @@ void EmuThread::run()
         if (emuInstance->hotkeyPressed(HK_BottomPopupToggle)) emit bottomPopupToggle();
         if (emuInstance->hotkeyPressed(HK_BottomPopupHold)) emit bottomPopupSet(true);
         if (emuInstance->hotkeyReleased(HK_BottomPopupHold)) emit bottomPopupSet(false);
+
+        updatePopupCursor();
 
         if (emuStatus == emuStatus_Running || emuStatus == emuStatus_FrameStep)
         {

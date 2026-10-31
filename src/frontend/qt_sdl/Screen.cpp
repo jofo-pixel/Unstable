@@ -64,6 +64,8 @@ ScreenPanel::ScreenPanel(QWidget* parent) : QWidget(parent)
     setMouseTracking(true);
     setAttribute(Qt::WA_AcceptTouchEvents);
 
+    createCursorImage();
+
     QWidget* w = parent;
     for (;;)
     {
@@ -151,6 +153,46 @@ void ScreenPanel::toggleBottomPopup()
     setBottomPopup(!popupVisible);
 }
 
+void ScreenPanel::createCursorImage()
+{
+    const int sz = kCursorSize * 2;
+    cursorImage = QImage(sz, sz, QImage::Format_ARGB32_Premultiplied);
+    cursorImage.fill(Qt::transparent);
+
+    QPainter p(&cursorImage);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.scale(2.0, 2.0);
+
+    // classic arrow pointer, tip at (1,1)
+    QPolygonF arrow;
+    arrow << QPointF(1, 1) << QPointF(1, 17) << QPointF(5.5, 13)
+          << QPointF(8.5, 20) << QPointF(11.5, 18.8) << QPointF(8.5, 12)
+          << QPointF(14.5, 12);
+
+    p.setPen(QPen(QColor(0, 0, 0), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setBrush(QColor(255, 255, 255));
+    p.drawPolygon(arrow);
+    p.end();
+}
+
+bool ScreenPanel::getCursorPos(int& x, int& y)
+{
+    if (!emuInstance || !emuInstance->popupCursorShown) return false;
+
+    for (int i = 0; i < numScreens; i++)
+    {
+        if (screenKind[i] != 1) continue;
+
+        float* m = screenMatrix[i];
+        float cx = emuInstance->popupCursorX + 0.5f;
+        float cy = emuInstance->popupCursorY + 0.5f;
+        x = (int)((cx * m[0]) + (cy * m[2]) + m[4]);
+        y = (int)((cx * m[1]) + (cy * m[3]) + m[5]);
+        return true;
+    }
+    return false;
+}
+
 void ScreenPanel::setFilter(bool filter)
 {
     this->filter = filter;
@@ -200,6 +242,11 @@ void ScreenPanel::setupScreenLayout()
                 aspectBot);
 
     numScreens = layout.GetScreenTransforms(screenMatrix[0], screenKind);
+
+    bool botVisible = false;
+    for (int i = 0; i < numScreens; i++)
+        if (screenKind[i] == 1) botVisible = true;
+    if (emuInstance) emuInstance->bottomScreenVisible = botVisible;
 
     calcSplashLayout();
 }
@@ -844,6 +891,13 @@ void ScreenPanelNative::paintEvent(QPaintEvent* event)
             painter.setTransform(screenTrans[i]);
             painter.drawImage(screenrc, screen[screenKind[i]]);
         }
+
+        int cx, cy;
+        if (getCursorPos(cx, cy))
+        {
+            painter.resetTransform();
+            painter.drawImage(QRect(cx - 1, cy - 1, kCursorSize, kCursorSize), cursorImage);
+        }
         emuInstance->renderLock.unlock();
     }
 
@@ -1041,6 +1095,15 @@ void ScreenPanelGL::initOpenGL()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, logo.width(), logo.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, logo.bits());
     logoTexture = tex;
 
+    // controller cursor texture
+    glGenTextures(1, &cursorTexture);
+    glBindTexture(GL_TEXTURE_2D, cursorTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cursorImage.width(), cursorImage.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, cursorImage.bits());
+
     transferLayout();
     glInited = true;
 }
@@ -1070,6 +1133,8 @@ void ScreenPanelGL::deinitOpenGL()
     glDeleteBuffers(1, &osdVertexBuffer);
 
     glDeleteTextures(1, &logoTexture);
+    if (cursorTexture) glDeleteTextures(1, &cursorTexture);
+    cursorTexture = 0;
 
     glDeleteProgram(osdShader);
 
@@ -1187,6 +1252,29 @@ void ScreenPanelGL::drawScreen()
         {
             glUniformMatrix2x3fv(screenShaderTransformULoc, 1, GL_TRUE, screenMatrix[i]);
             glDrawArrays(GL_TRIANGLES, screenKind[i] == 0 ? 0 : 2 * 3, 2 * 3);
+        }
+
+        int cx, cy;
+        if (cursorTexture && getCursorPos(cx, cy))
+        {
+            glUseProgram(osdShader);
+            glUniform2f(osdScreenSizeULoc, w, h);
+            glUniform1f(osdScaleFactorULoc, factor);
+            glUniform1f(osdTexScaleULoc, 2.0);
+
+            glBindBuffer(GL_ARRAY_BUFFER, osdVertexBuffer);
+            glBindVertexArray(osdVertexArray);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, cursorTexture);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            glUniform2i(osdPosULoc, cx - 1, cy - 1);
+            glUniform2i(osdSizeULoc, kCursorSize, kCursorSize);
+            glDrawArrays(GL_TRIANGLES, 0, 2*3);
+            glDisable(GL_BLEND);
+
+            glUseProgram(0);
         }
 
         screenSettingsLock.unlock();

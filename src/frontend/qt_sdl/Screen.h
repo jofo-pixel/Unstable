@@ -101,6 +101,13 @@ protected:
     int popupSize = 50;     // percent
     int popupAnchor = 0;    // see PopupAnchor
 
+    // controller cursor drawn over the bottom screen
+    QImage cursorImage;     // drawn at 2x for sharpness
+    static constexpr int kCursorSize = 22;
+    void createCursorImage();
+    // host (logical pixel) position of the cursor's tip; false if hidden
+    bool getCursorPos(int& x, int& y);
+
     ScreenLayout layout;
     float screenMatrix[kMaxScreenTransforms][6];
     int screenKind[kMaxScreenTransforms];
@@ -242,6 +249,7 @@ private:
     GLint osdScreenSizeULoc, osdPosULoc, osdSizeULoc;
     GLint osdScaleFactorULoc;
     GLint osdTexScaleULoc;
+    GLuint cursorTexture = 0;
     GLuint osdVertexArray;
     GLuint osdVertexBuffer;
     std::map<unsigned int, GLuint> osdTextures;

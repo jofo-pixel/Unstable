@@ -18,6 +18,7 @@
 
 #include <QKeyEvent>
 #include <SDL2/SDL.h>
+#include <algorithm>
 
 #include "Platform.h"
 #include "SDL_gamecontroller.h"
@@ -69,7 +70,12 @@ const char* EmuInstance::hotkeyNames[HK_MAX] =
     "HK_GuitarGripYellow",
     "HK_GuitarGripBlue",
     "HK_BottomPopupToggle",
-    "HK_BottomPopupHold"
+    "HK_BottomPopupHold",
+    "HK_PopupCursorUp",
+    "HK_PopupCursorDown",
+    "HK_PopupCursorLeft",
+    "HK_PopupCursorRight",
+    "HK_PopupCursorTouch"
 };
 
 std::shared_ptr<SDL_mutex> EmuInstance::joyMutexGlobal = nullptr;
@@ -419,6 +425,37 @@ bool EmuInstance::joystickButtonDown(int val)
     return false;
 }
 
+// how far a joystick mapping is pressed, 0..1
+// axis mappings report their deflection (with a deadzone), buttons/hats report 0 or 1
+float EmuInstance::joystickAnalog(int val)
+{
+    if (val == -1) return 0.f;
+
+    float amount = 0.f;
+
+    if (val & 0x10000)
+    {
+        int axisnum = (val >> 24) & 0xF;
+        int axisdir = (val >> 20) & 0xF;
+        int axisval = SDL_JoystickGetAxis(joystick, axisnum);
+
+        int raw = 0;
+        if (axisdir == 0)      raw = axisval > 0 ? axisval : 0;
+        else if (axisdir == 1) raw = axisval < 0 ? -axisval : 0;
+        else if (axisdir == 2) raw = axisval > 0 ? axisval : 0;
+
+        const float deadzone = 0.2f;
+        float f = std::min(raw / 32767.f, 1.f);
+        amount = (f < deadzone) ? 0.f : (f - deadzone) / (1.f - deadzone);
+    }
+
+    // button/hat part of the mapping (axis bits cleared)
+    if (((val & 0xFFFF) != 0xFFFF) && joystickButtonDown(val & 0xFFFF))
+        amount = 1.f;
+
+    return amount;
+}
+
 void EmuInstance::inputProcess()
 {
     SDL_LockMutex(joyMutex.get());
@@ -453,6 +490,13 @@ void EmuInstance::inputProcess()
         for (int i = 0; i < HK_MAX; i++)
             if (joystickButtonDown(hkJoyMapping[i]))
                 joyHotkeyMask |= (1 << i);
+    }
+
+    for (int i = 0; i < HK_MAX; i++)
+    {
+        float a = joystick ? joystickAnalog(hkJoyMapping[i]) : 0.f;
+        if (keyHotkeyMask & (1 << i)) a = 1.f;
+        hkAnalog[i] = a;
     }
 
     hotkeyMask = keyHotkeyMask | joyHotkeyMask;

@@ -20,6 +20,7 @@
 #define EMUINSTANCE_H
 
 #include <SDL2/SDL.h>
+#include <atomic>
 
 #include "Platform.h"
 #include "main.h"
@@ -58,6 +59,11 @@ enum
     HK_GuitarGripBlue,
     HK_BottomPopupToggle,
     HK_BottomPopupHold,
+    HK_PopupCursorUp,
+    HK_PopupCursorDown,
+    HK_PopupCursorLeft,
+    HK_PopupCursorRight,
+    HK_PopupCursorTouch,
     HK_MAX
 };
 
@@ -164,6 +170,12 @@ public:
     void touchScreen(int x, int y);
     void releaseScreen();
 
+    // controller cursor on the bottom screen
+    // written by the emu thread / screen panel, read by the other side
+    std::atomic<bool> bottomScreenVisible{true};
+    std::atomic<bool> popupCursorShown{false};
+    std::atomic<int> popupCursorX{128}, popupCursorY{96};
+
     // mic start/stop control from core
     void micStart();
     void micStop();
@@ -251,9 +263,12 @@ private:
     void openJoystick();
     void closeJoystick();
     bool joystickButtonDown(int val);
+    float joystickAnalog(int val);
 
     void inputProcess();
 
+    // 0..1: how far a hotkey is pressed (analog for stick/trigger mappings, else 0 or 1)
+    float hotkeyAnalog(int id)  { return hkAnalog[id]; }
     bool hotkeyDown(int id)     { return hotkeyMask    & (1<<id); }
     bool hotkeyPressed(int id)  { return hotkeyPress   & (1<<id); }
     bool hotkeyReleased(int id) { return hotkeyRelease & (1<<id); }
@@ -358,6 +373,7 @@ private:
     int joyMapping[12];
     int hkKeyMapping[HK_MAX];
     int hkJoyMapping[HK_MAX];
+    float hkAnalog[HK_MAX] = {};
 
     int joystickID;
     SDL_Joystick* joystick;

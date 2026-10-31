@@ -200,6 +200,14 @@ private:
 
     double perfCountsSec;
 
+    // controller cursor on the bottom screen
+    void updatePopupCursor();
+    float cursorX = 128.f, cursorY = 96.f;
+    float cursorHoldTime = 0.f;
+    double cursorLastUpdate = 0.0;
+    bool cursorTouching = false;
+    double cursorLastActive = -100.0;
+
     bool useOpenGL;
     int videoRenderer;
     bool videoSettingsDirty;
