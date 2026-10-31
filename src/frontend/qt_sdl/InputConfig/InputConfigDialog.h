@@ -105,7 +105,8 @@ static constexpr std::initializer_list<int> hk_popup =
     HK_PopupCursorDown,
     HK_PopupCursorLeft,
     HK_PopupCursorRight,
-    HK_PopupCursorTouch
+    HK_PopupCursorTouch,
+    HK_PopupCursorQuickTap
 };
 
 static constexpr std::initializer_list<const char*> hk_popup_labels =
@@ -116,7 +117,8 @@ static constexpr std::initializer_list<const char*> hk_popup_labels =
     "Cursor down",
     "Cursor left",
     "Cursor right",
-    "Cursor tap"
+    "Cursor press / drag",
+    "Cursor quick tap"
 };
 
 static_assert(hk_popup.size() == hk_popup_labels.size());

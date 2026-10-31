@@ -75,7 +75,8 @@ const char* EmuInstance::hotkeyNames[HK_MAX] =
     "HK_PopupCursorDown",
     "HK_PopupCursorLeft",
     "HK_PopupCursorRight",
-    "HK_PopupCursorTouch"
+    "HK_PopupCursorTouch",
+    "HK_PopupCursorQuickTap"
 };
 
 std::shared_ptr<SDL_mutex> EmuInstance::joyMutexGlobal = nullptr;

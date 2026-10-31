@@ -64,6 +64,7 @@ enum
     HK_PopupCursorLeft,
     HK_PopupCursorRight,
     HK_PopupCursorTouch,
+    HK_PopupCursorQuickTap,
     HK_MAX
 };
 

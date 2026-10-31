@@ -206,6 +206,7 @@ private:
     float cursorHoldTime = 0.f;
     double cursorLastUpdate = 0.0;
     bool cursorTouching = false;
+    int cursorQuickTapFrames = 0;
     double cursorLastActive = -100.0;
 
     bool useOpenGL;

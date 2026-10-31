@@ -150,8 +150,27 @@ void EmuThread::updatePopupCursor()
     else
         cursorHoldTime = 0.f;
 
+    // quick tap: a short, light touch (the game treats this differently from a long press,
+    // e.g. picking a single item from a stack instead of the whole stack)
+    if (emuInstance->hotkeyPressed(HK_PopupCursorQuickTap) && !cursorTouching)
+    {
+        cursorQuickTapFrames = 3;
+        cursorLastActive = now;
+    }
+    if (cursorQuickTapFrames > 0)
+    {
+        cursorQuickTapFrames--;
+        if (cursorQuickTapFrames > 0)
+            emuInstance->touchScreen((int)cursorX, (int)cursorY);
+        else
+            emuInstance->releaseScreen();
+    }
+
     if (emuInstance->hotkeyPressed(HK_PopupCursorTouch))
+    {
         cursorTouching = true;
+        cursorQuickTapFrames = 0;
+    }
 
     if (cursorTouching)
     {
