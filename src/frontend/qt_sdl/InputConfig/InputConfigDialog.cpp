@@ -17,6 +17,9 @@
 */
 
 #include <QGroupBox>
+#include <QScrollArea>
+#include <QVBoxLayout>
+#include <QTimer>
 #include <QLabel>
 #include <QKeyEvent>
 #include <QDebug>
@@ -73,8 +76,37 @@ InputConfigDialog::InputConfigDialog(QWidget* parent) : QDialog(parent), ui(new 
         i++;
     }
 
+    i = 0;
+    for (int hotkey : hk_popup)
+    {
+        const char* btn = EmuInstance::hotkeyNames[hotkey];
+        hkPopupKeyMap[i] = keycfg.GetInt(btn);
+        hkPopupJoyMap[i] = joycfg.GetInt(btn);
+        i++;
+    }
+
     populatePage(ui->tabAddons, hk_addons_labels, addonsKeyMap, addonsJoyMap);
     populatePage(ui->tabHotkeysGeneral, hk_general_labels, hkGeneralKeyMap, hkGeneralJoyMap);
+
+    {
+        // "Bottom screen" tab: popup + controller cursor, with a live joystick monitor
+        QWidget* tabPopup = new QWidget();
+        QVBoxLayout* vl = new QVBoxLayout(tabPopup);
+        QWidget* mappings = new QWidget();
+        populatePage(mappings, hk_popup_labels, hkPopupKeyMap, hkPopupJoyMap);
+        vl->addWidget(mappings, 1);
+
+        lblJoyMonitor = new QLabel();
+        lblJoyMonitor->setWordWrap(true);
+        lblJoyMonitor->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        vl->addWidget(lblJoyMonitor);
+
+        ui->tabWidget->addTab(tabPopup, "Bottom screen");
+
+        joyMonitorTimer = new QTimer(this);
+        connect(joyMonitorTimer, &QTimer::timeout, this, &InputConfigDialog::updateJoyMonitor);
+        joyMonitorTimer->start(100);
+    }
 
     joystickID = instcfg.GetInt("JoystickID");
 
@@ -179,7 +211,58 @@ void InputConfigDialog::populatePage(QWidget* page,
     group->setLayout(group_layout);
     group->setMinimumWidth(275);
 
-    page->setLayout(main_layout);
+    // wrap in a scroll area so long lists never push the dialog off screen
+    QWidget* inner = new QWidget();
+    inner->setLayout(main_layout);
+    QScrollArea* scroll = new QScrollArea();
+    scroll->setWidget(inner);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    QVBoxLayout* pageLayout = new QVBoxLayout();
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scroll);
+    page->setLayout(pageLayout);
+}
+
+void InputConfigDialog::updateJoyMonitor()
+{
+    if (!lblJoyMonitor) return;
+
+    auto mutex = getJoyMutex();
+    SDL_LockMutex(mutex.get());
+    SDL_Joystick* joy = getJoystick();
+
+    QString text;
+    if (!joy || !SDL_JoystickGetAttached(joy))
+    {
+        text = "Controller monitor: no controller connected.";
+    }
+    else
+    {
+        int nb = SDL_JoystickNumButtons(joy);
+        int na = SDL_JoystickNumAxes(joy);
+        int nh = SDL_JoystickNumHats(joy);
+
+        QStringList pressed;
+        for (int b = 0; b < nb; b++)
+            if (SDL_JoystickGetButton(joy, b)) pressed << QString::number(b);
+        for (int h = 0; h < nh; h++)
+            if (SDL_JoystickGetHat(joy, h)) pressed << QString("Hat%1:%2").arg(h + 1).arg(SDL_JoystickGetHat(joy, h));
+
+        QStringList axes;
+        for (int a = 0; a < na; a++)
+            axes << QString("%1:%2").arg(a + 1).arg(SDL_JoystickGetAxis(joy, a) / 327.67, 0, 'f', 0);
+
+        text = QString("Controller monitor - %1 (%2 buttons, %3 axes, %4 hats)\n"
+                       "Pressed: %5\nAxes (%): %6")
+                   .arg(QString(SDL_JoystickName(joy)))
+                   .arg(nb).arg(na).arg(nh)
+                   .arg(pressed.isEmpty() ? QString("-") : pressed.join(" "))
+                   .arg(axes.join("  "));
+    }
+    SDL_UnlockMutex(mutex.get());
+
+    lblJoyMonitor->setText(text);
 }
 
 void InputConfigDialog::on_InputConfigDialog_accepted()
@@ -210,6 +293,15 @@ void InputConfigDialog::on_InputConfigDialog_accepted()
         const char* btn = EmuInstance::hotkeyNames[hotkey];
         keycfg.SetInt(btn, hkGeneralKeyMap[i]);
         joycfg.SetInt(btn, hkGeneralJoyMap[i]);
+        i++;
+    }
+
+    i = 0;
+    for (int hotkey : hk_popup)
+    {
+        const char* btn = EmuInstance::hotkeyNames[hotkey];
+        keycfg.SetInt(btn, hkPopupKeyMap[i]);
+        joycfg.SetInt(btn, hkPopupJoyMap[i]);
         i++;
     }
 

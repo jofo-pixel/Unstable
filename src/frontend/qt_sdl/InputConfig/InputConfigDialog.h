@@ -23,6 +23,8 @@
 #include <QPushButton>
 #include <initializer_list>
 
+#include <QLabel>
+#include <QTimer>
 #include "Config.h"
 #include "EmuInstance.h"
 
@@ -68,14 +70,7 @@ static constexpr std::initializer_list<int> hk_general =
     HK_PowerButton,
     HK_VolumeUp,
     HK_VolumeDown,
-    HK_AudioMuteToggle,
-    HK_BottomPopupToggle,
-    HK_BottomPopupHold,
-    HK_PopupCursorUp,
-    HK_PopupCursorDown,
-    HK_PopupCursorLeft,
-    HK_PopupCursorRight,
-    HK_PopupCursorTouch
+    HK_AudioMuteToggle
 };
 
 static constexpr std::initializer_list<const char*> hk_general_labels =
@@ -96,17 +91,34 @@ static constexpr std::initializer_list<const char*> hk_general_labels =
     "DSi Power button",
     "DSi Volume up",
     "DSi Volume down",
-    "Toggle audio mute",
-    "Toggle bottom screen popup",
-    "Bottom screen popup (hold)",
-    "Bottom screen cursor up",
-    "Bottom screen cursor down",
-    "Bottom screen cursor left",
-    "Bottom screen cursor right",
-    "Bottom screen cursor tap"
+    "Toggle audio mute"
 };
 
 static_assert(hk_general.size() == hk_general_labels.size());
+
+static constexpr std::initializer_list<int> hk_popup =
+{
+    HK_BottomPopupToggle,
+    HK_BottomPopupHold,
+    HK_PopupCursorUp,
+    HK_PopupCursorDown,
+    HK_PopupCursorLeft,
+    HK_PopupCursorRight,
+    HK_PopupCursorTouch
+};
+
+static constexpr std::initializer_list<const char*> hk_popup_labels =
+{
+    "Toggle popup",
+    "Show popup (hold)",
+    "Cursor up",
+    "Cursor down",
+    "Cursor left",
+    "Cursor right",
+    "Cursor tap"
+};
+
+static_assert(hk_popup.size() == hk_popup_labels.size());
 
 
 namespace Ui { class InputConfigDialog; }
@@ -154,6 +166,7 @@ private:
         const std::initializer_list<const char*>& labels,
         int* keymap, int* joymap);
     void setupKeypadPage();
+    void updateJoyMonitor();
 
     Ui::InputConfigDialog* ui;
 
@@ -162,6 +175,9 @@ private:
     int keypadKeyMap[12], keypadJoyMap[12];
     int addonsKeyMap[hk_addons.size()], addonsJoyMap[hk_addons.size()];
     int hkGeneralKeyMap[hk_general.size()], hkGeneralJoyMap[hk_general.size()];
+    int hkPopupKeyMap[hk_popup.size()], hkPopupJoyMap[hk_popup.size()];
+    QLabel* lblJoyMonitor = nullptr;
+    QTimer* joyMonitorTimer = nullptr;
     int joystickID;
 };
 
