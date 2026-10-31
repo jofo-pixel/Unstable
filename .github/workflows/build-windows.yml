@@ -23,8 +23,7 @@ jobs:
         arch:
           - name: x86_64
             image: windows-2025-vs2026
-          - name: arm64
-            image: windows-11-arm
+          # arm64 disabled in this fork: only the x86_64 build is needed (ROG Ally X)
 
     name: ${{ matrix.arch.name }}
     runs-on: ${{ matrix.arch.image }}
