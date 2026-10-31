@@ -20,6 +20,7 @@
 #define MAPBUTTON_H
 
 #include <QPushButton>
+#include <QContextMenuEvent>
 
 #include <SDL2/SDL.h>
 
@@ -170,6 +171,7 @@ public:
         setCheckable(true);
         setText(mappingText());
         setFocusPolicy(Qt::StrongFocus); //Fixes binding keys in macOS
+        setToolTip("Click, then press a button or move an axis.\nRight-click (or long-press) to clear.");
 
         connect(this, &JoyMapButton::clicked, this, &JoyMapButton::onClick);
 
@@ -207,6 +209,15 @@ protected:
             if (key == Qt::Key_Escape) { click(); return; }
             if (key == Qt::Key_Backspace) { *mapping = -1; click(); return; }
         }
+    }
+
+    // right-click (long-press on touchscreens) clears the mapping
+    void contextMenuEvent(QContextMenuEvent* event) override
+    {
+        event->accept();
+        if (isChecked()) click(); // stop listening
+        *mapping = -1;
+        setText(mappingText());
     }
 
     void focusOutEvent(QFocusEvent* event) override
