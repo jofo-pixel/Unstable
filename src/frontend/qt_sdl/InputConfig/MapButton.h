@@ -237,16 +237,13 @@ protected:
         if (!joy) { click(); return; }
         if (!SDL_JoystickGetAttached(joy)) { click(); return; }
 
-        int oldmap;
-        if (*mapping == -1) oldmap = 0xFFFF;
-        else                oldmap = *mapping;
 
         int nbuttons = SDL_JoystickNumButtons(joy);
         for (int i = 0; i < nbuttons; i++)
         {
             if (SDL_JoystickGetButton(joy, i))
             {
-                *mapping = (oldmap & 0xFFFF0000) | i;
+                *mapping = (int)(0xFFFF0000u | i); // replace the whole mapping (drop any old axis)
                 click();
                 return;
             }
@@ -264,7 +261,7 @@ protected:
                 else if (blackhat & 0x4) blackhat = 0x4;
                 else                     blackhat = 0x8;
 
-                *mapping = (oldmap & 0xFFFF0000) | 0x100 | blackhat | (i << 4);
+                *mapping = (int)(0xFFFF0000u | 0x100 | blackhat | (i << 4)); // replace the whole mapping
                 click();
                 return;
             }
@@ -281,7 +278,7 @@ protected:
             {
                 if (axesRest[i] < -16384) // Trigger
                 {
-                    *mapping = (oldmap & 0xFFFF) | 0x10000 | (2 << 20) | (i << 24);
+                    *mapping = 0xFFFF | 0x10000 | (2 << 20) | (i << 24); // replace the whole mapping (drop any old button)
                 }
                 else // Analog stick
                 {
@@ -289,7 +286,7 @@ protected:
                     if (axisval > 0) axistype = 0;
                     else             axistype = 1;
 
-                    *mapping = (oldmap & 0xFFFF) | 0x10000 | (axistype << 20) | (i << 24);
+                    *mapping = 0xFFFF | 0x10000 | (axistype << 20) | (i << 24); // replace the whole mapping
                 }
 
                 click();
