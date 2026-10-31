@@ -459,6 +459,35 @@ float EmuInstance::joystickAnalog(int val)
     return amount;
 }
 
+// remove the parts of a joystick mapping (button/hat and/or axis) that are also
+// used by one of the bottom screen cursor hotkeys
+int EmuInstance::stripCursorInputs(int val)
+{
+    if (val == -1) return val;
+
+    static const int cursorHotkeys[] = {
+        HK_PopupCursorUp, HK_PopupCursorDown, HK_PopupCursorLeft, HK_PopupCursorRight,
+        HK_PopupCursorTouch, HK_PopupCursorQuickTap
+    };
+
+    for (int hk : cursorHotkeys)
+    {
+        int other = hkJoyMapping[hk];
+        if (other == -1) continue;
+
+        // button or hat part
+        if ((val & 0xFFFF) != 0xFFFF && (val & 0xFFFF) == (other & 0xFFFF))
+            val = (val & ~0xFFFF) | 0xFFFF;
+
+        // axis part (same axis number, any direction)
+        if ((val & 0x10000) && (other & 0x10000) &&
+            ((val >> 24) & 0xF) == ((other >> 24) & 0xF))
+            val &= 0xFFFF;
+    }
+
+    return val;
+}
+
 void EmuInstance::inputProcess()
 {
     SDL_LockMutex(joyMutex.get());
@@ -481,8 +510,17 @@ void EmuInstance::inputProcess()
     if (joystick)
     {
         for (int i = 0; i < 12; i++)
-            if (joystickButtonDown(joyMapping[i]))
+        {
+            int mapping = joyMapping[i];
+
+            // while the bottom screen (and so the controller cursor) is visible,
+            // don't let the controls used by the cursor also press DS buttons
+            if (bottomScreenVisible)
+                mapping = stripCursorInputs(mapping);
+
+            if (joystickButtonDown(mapping))
                 joyInputMask &= ~(1 << i);
+        }
     }
 
     inputMask = keyInputMask & joyInputMask;

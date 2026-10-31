@@ -266,6 +266,7 @@ private:
     void closeJoystick();
     bool joystickButtonDown(int val);
     float joystickAnalog(int val);
+    int stripCursorInputs(int val);
 
     void inputProcess();
 
