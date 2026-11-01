@@ -93,6 +93,7 @@ EmuInstance::EmuInstance(int inst) : deleting(false),
     cheatsOn = localCfg.GetBool("EnableCheats");
 
     doLimitFPS = globalCfg.GetBool("LimitFPS");
+    doSaveTurbo = globalCfg.GetBool("SaveTurbo");
 
     double val = globalCfg.GetDouble("TargetFPS");
     if (val == 0.0)

@@ -66,6 +66,10 @@ struct NDSCartArgs
 class NDSCartSlot
 {
 public:
+    /// Counts bytes sent over the cartridge backup (save chip) SPI bus.
+    /// The frontend uses it to detect in-game saving/loading and speed it up.
+    u32 BackupSPIActivity = 0;
+
     explicit NDSCartSlot(melonDS::NDS& nds, u32 num, std::unique_ptr<CartCommon>&& rom = nullptr) noexcept;
     ~NDSCartSlot() noexcept;
     void Reset() noexcept;

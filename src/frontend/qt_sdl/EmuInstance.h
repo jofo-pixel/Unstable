@@ -318,6 +318,7 @@ public:
     std::unique_ptr<SaveManager> firmwareSave;
 
     bool doLimitFPS;
+    bool doSaveTurbo;   // fast-forward automatically while the game reads/writes its save chip
     double curFPS;
     double targetFPS;
     double fastForwardFPS;

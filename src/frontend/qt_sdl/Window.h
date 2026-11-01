@@ -304,6 +304,7 @@ public:
     QAction* actShowOSD;
     QAction* actLimitFramerate;
     QAction* actAudioSync;
+    QAction* actSaveTurbo;
 
     QAction* actAbout;
 };

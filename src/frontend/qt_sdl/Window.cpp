@@ -656,6 +656,14 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             actAudioSync = menu->addAction("Audio sync");
             actAudioSync->setCheckable(true);
             connect(actAudioSync, &QAction::triggered, this, &MainWindow::onChangeAudioSync);
+
+            actSaveTurbo = menu->addAction("Fast in-game saving/loading");
+            actSaveTurbo->setCheckable(true);
+            connect(actSaveTurbo, &QAction::triggered, this, [this](bool checked)
+            {
+                emuInstance->doSaveTurbo = checked;
+                globalCfg.SetBool("SaveTurbo", checked);
+            });
         }
         {
             QMenu * menu = menubar->addMenu("Help");
@@ -773,6 +781,7 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
 
         actLimitFramerate->setChecked(emuInstance->doLimitFPS);
         actAudioSync->setChecked(emuInstance->doAudioSync);
+        actSaveTurbo->setChecked(emuInstance->doSaveTurbo);
 
         if (emuInstance->instanceID > 0)
         {

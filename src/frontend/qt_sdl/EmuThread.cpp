@@ -236,6 +236,8 @@ void EmuThread::run()
 
     bool fastforward = false;
     bool slowmo = false;
+    u32 lastBackupSPIActivity = 0;
+    int saveTurboFrames = 0;
     emuInstance->fastForwardToggled = false;
     emuInstance->slowmoToggled = false;
 
@@ -433,7 +435,22 @@ void EmuThread::run()
 
             if (emuInstance->hotkeyPressed(HK_AudioMuteToggle)) emuInstance->toggleAudioMute();
 
-            bool enablefastforward = emuInstance->hotkeyDown(HK_FastForward) | emuInstance->fastForwardToggled;
+            // Save turbo: while the game talks to its save chip (in-game saving/loading), run unthrottled.
+            // Normal gameplay never touches the save chip, so this only kicks in during save/load.
+            // A short tail bridges the 1-2 frame gaps between the game's page writes.
+            {
+                u32 spiAct = emuInstance->nds->NDSCartSlot.BackupSPIActivity;
+                if (spiAct != lastBackupSPIActivity)
+                {
+                    lastBackupSPIActivity = spiAct;
+                    saveTurboFrames = 8;
+                }
+                else if (saveTurboFrames > 0)
+                    saveTurboFrames--;
+            }
+            bool saveturbo = emuInstance->doSaveTurbo && saveTurboFrames > 0;
+
+            bool enablefastforward = emuInstance->hotkeyDown(HK_FastForward) | emuInstance->fastForwardToggled | saveturbo;
             bool enableslowmo = emuInstance->hotkeyDown(HK_SlowMo) | emuInstance->slowmoToggled;
 
             if (useOpenGL)
@@ -454,6 +471,7 @@ void EmuThread::run()
             emuInstance->updateFastForwardMute(fastforward);
 
             if (slowmo) emuInstance->curFPS = emuInstance->slowmoFPS;
+            else if (saveturbo) emuInstance->curFPS = 1000.0;
             else if (fastforward) emuInstance->curFPS = emuInstance->fastForwardFPS;
             else if (!emuInstance->doLimitFPS && !emuInstance->doAudioSync) emuInstance->curFPS = 1000.0;
             else emuInstance->curFPS = emuInstance->targetFPS;

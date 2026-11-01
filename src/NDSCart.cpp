@@ -1109,6 +1109,7 @@ void NDSCartSlot::Interface::WriteSPIData(u8 val)
                 Parent.Cart->SPISelect();
 
             SPIData = Parent.Cart->SPITransmitReceive(val);
+            Parent.BackupSPIActivity++;
 
             if (!hold)
                 Parent.Cart->SPIRelease();
