@@ -24,9 +24,9 @@ static const u32 kCamX        = 0x023D3E0C; // s32 8.8
 static const u32 kCamY        = 0x023D3E10; // s32 8.8
 
 // handshake with the ROM patch (stairs hook in an unused ARM9 block)
-static const u32 kMagicAddr   = 0x021ADCB8;
-static const u32 kReqAddr     = 0x021ADCBC;
-static const u32 kAnsAddr     = 0x021ADCC0;
+static const u32 kMagicAddr   = 0x021ADCA0;
+static const u32 kReqAddr     = 0x021ADCA4;
+static const u32 kAnsAddr     = 0x021ADCA8;
 static const u32 kMagic       = 0x484D4D48; // 'HMMH'
 
 // ground content ids
@@ -62,8 +62,8 @@ bool Helper::update(u8* ram, u32 mask, bool isHMEU, bool indicatorOn, bool selec
     }
 
     // ---- level selection on the stairs down --------------------------------------------
-    if (selectorOn)
-        wr32(ram, mask, kMagicAddr, kMagic);     // announce ourselves (the ROM consumes it)
+    // announce ourselves (the ROM consumes it when the stairs are taken)
+    wr32(ram, mask, kMagicAddr, selectorOn ? kMagic : 0);
 
     u32 p = rd32(ram, mask, kGlobalPtr);
     u32 req = rd32(ram, mask, kReqAddr);
