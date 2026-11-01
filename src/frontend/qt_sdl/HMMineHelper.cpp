@@ -23,10 +23,10 @@ static const u32 kGndTblPtr   = 0x0218BFD8; // -> u16[] ground content   (index 
 static const u32 kCamX        = 0x023D3E0C; // s32 8.8
 static const u32 kCamY        = 0x023D3E10; // s32 8.8
 
-// handshake with the ROM patch (stairs hook in an unused ARM9 block)
-static const u32 kMagicAddr   = 0x021ADCA0;
-static const u32 kReqAddr     = 0x021ADCA4;
-static const u32 kAnsAddr     = 0x021ADCA8;
+// handshake with the ROM patch (stairs hook; words in ARM9 ITCM at 0x01FF9E00, offset 0x1E00)
+static const u32 kMagicOff    = 0x1E00;
+static const u32 kReqOff      = 0x1E04;
+static const u32 kAnsOff      = 0x1E08;
 static const u32 kMagic       = 0x484D4D48; // 'HMMH'
 
 // ground content ids
@@ -49,12 +49,12 @@ static inline void wr32(u8* ram, u32 mask, u32 a, u32 v)
 }
 static inline bool isRAM(u32 a) { return a >= 0x02000000 && a < 0x02400000; }
 
-bool Helper::update(u8* ram, u32 mask, bool isHMEU, bool indicatorOn, bool selectorOn, u32 keys)
+bool Helper::update(u8* ram, u32 mask, u8* itcm, bool isHMEU, bool indicatorOn, bool selectorOn, u32 keys)
 {
     state.inMine = false;
     state.cells.clear();
 
-    if (!isHMEU || !ram)
+    if (!isHMEU || !ram || !itcm)
     {
         state.selecting = false;
         prevKeys = keys;
@@ -63,11 +63,11 @@ bool Helper::update(u8* ram, u32 mask, bool isHMEU, bool indicatorOn, bool selec
 
     // ---- level selection on the stairs down --------------------------------------------
     // announce ourselves (the ROM consumes it when the stairs are taken)
-    wr32(ram, mask, kMagicAddr, selectorOn ? kMagic : 0);
+    wr32(itcm, 0x7FFF, kMagicOff, selectorOn ? kMagic : 0);
 
     u32 p = rd32(ram, mask, kGlobalPtr);
-    u32 req = rd32(ram, mask, kReqAddr);
-    bool waiting = (req != 0) && (rd32(ram, mask, kAnsAddr) == 0);
+    u32 req = rd32(itcm, 0x7FFF, kReqOff);
+    bool waiting = (req != 0) && (rd32(itcm, 0x7FFF, kAnsOff) == 0);
 
     if (waiting && isRAM(p))
     {
@@ -118,9 +118,9 @@ bool Helper::update(u8* ram, u32 mask, bool isHMEU, bool indicatorOn, bool selec
         state.selLevel = sel;
 
         if (pressed & (1<<0))                 // A: go to the selected level
-            wr32(ram, mask, kAnsAddr, (u32)sel);
+            wr32(itcm, 0x7FFF, kAnsOff, (u32)sel);
         else if (pressed & (1<<1))            // B: just the next level
-            wr32(ram, mask, kAnsAddr, (u32)minl);
+            wr32(itcm, 0x7FFF, kAnsOff, (u32)minl);
 
         prevKeys = keys;
         return true;

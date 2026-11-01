@@ -44,7 +44,8 @@ class Helper
 public:
     // keys: DS keys currently held, active-high (bit0 A, bit1 B, ... bit8 R, bit9 L)
     // returns true if the selection is active (frontend should not feed keys to the game)
-    bool update(melonDS::u8* ram, melonDS::u32 ramMask, bool isHMEU,
+    // itcm: ARM9 ITCM (32 KB) - the ROM patch keeps its handshake words there
+    bool update(melonDS::u8* ram, melonDS::u32 ramMask, melonDS::u8* itcm, bool isHMEU,
                 bool indicatorOn, bool selectorOn, melonDS::u32 keys);
 
     State state;

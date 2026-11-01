@@ -419,7 +419,7 @@ void EmuThread::run()
                     isHM = gc[0] == 'A' && gc[1] == 'B' && gc[2] == 'C' && gc[3] == 'P';
                 }
                 u32 keys = (~emuInstance->inputMask) & 0xFFF;
-                hmMineSwallow = emuInstance->hmMine.update(nds->MainRAM, nds->MainRAMMask, isHM,
+                hmMineSwallow = emuInstance->hmMine.update(nds->MainRAM, nds->MainRAMMask, nds->ARM9.ITCM, isHM,
                                                            emuInstance->hmMineMarkers,
                                                            emuInstance->hmMineLevelSelect, keys);
                 {
