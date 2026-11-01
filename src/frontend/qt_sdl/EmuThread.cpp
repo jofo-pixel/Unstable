@@ -238,6 +238,7 @@ void EmuThread::run()
     bool slowmo = false;
     u32 lastBackupSPIActivity = 0;
     int saveTurboFrames = 0;
+    bool hmMineSwallow = false;
     emuInstance->fastForwardToggled = false;
     emuInstance->slowmoToggled = false;
 
@@ -349,7 +350,7 @@ void EmuThread::run()
             }
 
             // process input and hotkeys
-            emuInstance->nds->SetKeyMask(emuInstance->inputMask);
+            emuInstance->nds->SetKeyMask(hmMineSwallow ? 0xFFF : emuInstance->inputMask);
 
             if (emuInstance->isTouching)
                 emuInstance->nds->TouchScreen(emuInstance->touchX, emuInstance->touchY);
@@ -406,6 +407,26 @@ void EmuThread::run()
             else
             {
                 nlines = emuInstance->nds->RunFrame();
+            }
+
+            // Harvest Moon DS (EU) mine helper
+            {
+                NDS* nds = emuInstance->nds;
+                bool isHM = false;
+                if (auto* cart = nds->NDSCartSlot.GetCart())
+                {
+                    const char* gc = cart->GetHeader().GameCode;
+                    isHM = gc[0] == 'A' && gc[1] == 'B' && gc[2] == 'C' && gc[3] == 'P';
+                }
+                u32 keys = (~emuInstance->inputMask) & 0xFFF;
+                hmMineSwallow = emuInstance->hmMine.update(nds->MainRAM, nds->MainRAMMask, isHM,
+                                                           emuInstance->hmMineMarkers,
+                                                           emuInstance->hmMineLevelSelect, keys);
+                {
+                    std::lock_guard<std::mutex> lk(emuInstance->hmMineLock);
+                    emuInstance->hmMineState = emuInstance->hmMine.state;
+                }
+                emuInstance->hmMineVersion++;
             }
 
             if (emuInstance->ndsSave)

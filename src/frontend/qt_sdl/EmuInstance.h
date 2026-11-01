@@ -29,6 +29,8 @@
 #include "Window.h"
 #include "Config.h"
 #include "SaveManager.h"
+#include "HMMineHelper.h"
+#include <mutex>
 
 const int kMaxWindows = 4;
 
@@ -319,6 +321,14 @@ public:
 
     bool doLimitFPS;
     bool doSaveTurbo;   // fast-forward automatically while the game reads/writes its save chip
+
+    // Harvest Moon DS (EU) mine helper: floor markers + level selection on the stairs
+    bool hmMineMarkers;
+    bool hmMineLevelSelect;
+    HMMine::Helper hmMine;          // used by the emu thread only
+    std::mutex hmMineLock;          // guards hmMineState
+    HMMine::State hmMineState;      // copy for the screen
+    std::atomic<unsigned> hmMineVersion{0};
     double curFPS;
     double targetFPS;
     double fastForwardFPS;

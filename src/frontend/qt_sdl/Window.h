@@ -305,6 +305,8 @@ public:
     QAction* actLimitFramerate;
     QAction* actAudioSync;
     QAction* actSaveTurbo;
+    QAction* actHMMineMarkers;
+    QAction* actHMMineLevelSelect;
 
     QAction* actAbout;
 };

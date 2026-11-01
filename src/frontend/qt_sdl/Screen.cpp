@@ -193,6 +193,78 @@ bool ScreenPanel::getCursorPos(int& x, int& y)
     return false;
 }
 
+bool ScreenPanel::updateHMOverlay()
+{
+    if (!emuInstance) return false;
+    unsigned ver = emuInstance->hmMineVersion;
+    if (ver == hmOverlayVersion) return false;
+    hmOverlayVersion = ver;
+
+    HMMine::State st;
+    {
+        std::lock_guard<std::mutex> lk(emuInstance->hmMineLock);
+        st = emuInstance->hmMineState;
+    }
+
+    hmOverlayVisible = st.selecting || (st.inMine && !st.cells.empty());
+    if (!hmOverlayVisible) return true;
+
+    if (hmOverlay.isNull())
+        hmOverlay = QImage(512, 384, QImage::Format_ARGB32_Premultiplied);
+    hmOverlay.fill(Qt::transparent);
+
+    QPainter p(&hmOverlay);
+    p.scale(2.0, 2.0);
+
+    // subtle tints: hole, stairs, cursed item, mystic ore
+    static const QColor fill[HMMine::Kind_MAX] = {
+        QColor(30, 30, 30, 95), QColor(255, 225, 80, 70), QColor(230, 40, 40, 70), QColor(60, 220, 90, 70) };
+    static const QColor edge[HMMine::Kind_MAX] = {
+        QColor(30, 30, 30, 140), QColor(255, 225, 80, 120), QColor(230, 40, 40, 120), QColor(60, 220, 90, 120) };
+
+    for (const auto& c : st.cells)
+    {
+        p.fillRect(QRectF(c.x + 1, c.y + 1, 14, 14), fill[c.kind]);
+        p.setPen(QPen(edge[c.kind], 1.0));
+        p.setBrush(Qt::NoBrush);
+        p.drawRect(QRectF(c.x + 0.5, c.y + 0.5, 15, 15));
+    }
+
+    if (st.selecting)
+    {
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setRenderHint(QPainter::TextAntialiasing);
+        QRectF box(28, 50, 200, 92);
+        p.setPen(QPen(QColor(120, 90, 40), 1.5));
+        p.setBrush(QColor(255, 244, 170, 245));
+        p.drawRoundedRect(box, 5, 5);
+
+        QFont f = p.font();
+        f.setPixelSize(10);
+        p.setFont(f);
+        p.setPen(QColor(60, 40, 20));
+        p.drawText(QRectF(box.x(), box.y() + 5, box.width(), 14), Qt::AlignCenter,
+                   QString("Treppe nach unten  (jetzt Level %1)").arg(st.curLevel));
+
+        QFont big = f;
+        big.setPixelSize(24);
+        big.setBold(true);
+        p.setFont(big);
+        const QString up(QChar(0x25B2)), dn(QChar(0x25BC)), lt(QChar(0x25C0)), rt(QChar(0x25B6)), pm(QChar(0x00B1));
+        p.drawText(QRectF(box.x(), box.y() + 20, box.width(), 30), Qt::AlignCenter,
+                   up + QString("  Level %1  ").arg(st.selLevel) + dn);
+
+        p.setFont(f);
+        QString hint = up + dn + " " + pm + "1   " + lt + rt + " " + pm + "10   L/R " + pm + "100";
+        if (st.maxLevel > 999) hint += "   X/Y " + pm + "1000";
+        p.drawText(QRectF(box.x(), box.y() + 52, box.width(), 14), Qt::AlignCenter, hint);
+        p.drawText(QRectF(box.x(), box.y() + 68, box.width(), 14), Qt::AlignCenter,
+                   QString("A: los   B: n") + QChar(0x00E4) + QString("chstes Level   (max. %1)").arg(st.maxLevel));
+    }
+    p.end();
+    return true;
+}
+
 void ScreenPanel::setFilter(bool filter)
 {
     this->filter = filter;
@@ -892,6 +964,17 @@ void ScreenPanelNative::paintEvent(QPaintEvent* event)
             painter.drawImage(screenrc, screen[screenKind[i]]);
         }
 
+        updateHMOverlay();
+        if (hmOverlayVisible)
+        {
+            for (int i = 0; i < numScreens; i++)
+            {
+                if (screenKind[i] != 0) continue;
+                painter.setTransform(screenTrans[i]);
+                painter.drawImage(screenrc, hmOverlay);
+            }
+        }
+
         int cx, cy;
         if (getCursorPos(cx, cy))
         {
@@ -1104,6 +1187,16 @@ void ScreenPanelGL::initOpenGL()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cursorImage.width(), cursorImage.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, cursorImage.bits());
 
+    // Harvest Moon mine helper overlay texture (512x384)
+    glGenTextures(1, &hmOverlayTexture);
+    glBindTexture(GL_TEXTURE_2D, hmOverlayTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 384, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    hmOverlayVersion = ~0u;
+
     transferLayout();
     glInited = true;
 }
@@ -1135,6 +1228,8 @@ void ScreenPanelGL::deinitOpenGL()
     glDeleteTextures(1, &logoTexture);
     if (cursorTexture) glDeleteTextures(1, &cursorTexture);
     cursorTexture = 0;
+    if (hmOverlayTexture) glDeleteTextures(1, &hmOverlayTexture);
+    hmOverlayTexture = 0;
 
     glDeleteProgram(osdShader);
 
@@ -1252,6 +1347,43 @@ void ScreenPanelGL::drawScreen()
         {
             glUniformMatrix2x3fv(screenShaderTransformULoc, 1, GL_TRUE, screenMatrix[i]);
             glDrawArrays(GL_TRIANGLES, screenKind[i] == 0 ? 0 : 2 * 3, 2 * 3);
+        }
+
+        if (hmOverlayTexture)
+        {
+            if (updateHMOverlay() && hmOverlayVisible)
+            {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, hmOverlayTexture);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 512, 384, GL_RGBA, GL_UNSIGNED_BYTE, hmOverlay.constBits());
+            }
+            if (hmOverlayVisible)
+            {
+                for (int i = 0; i < numScreens; i++)
+                {
+                    if (screenKind[i] != 0) continue;
+                    float* m = screenMatrix[i];
+                    if (m[1] != 0.0f || m[2] != 0.0f || m[0] <= 0.0f) continue; // rotated layouts: skip
+
+                    glUseProgram(osdShader);
+                    glUniform2f(osdScreenSizeULoc, w, h);
+                    glUniform1f(osdScaleFactorULoc, factor);
+                    glUniform1f(osdTexScaleULoc, 2.0f / m[0]);
+
+                    glBindBuffer(GL_ARRAY_BUFFER, osdVertexBuffer);
+                    glBindVertexArray(osdVertexArray);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, hmOverlayTexture);
+
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                    glUniform2i(osdPosULoc, (int)m[4], (int)m[5]);
+                    glUniform2i(osdSizeULoc, (int)(256 * m[0]), (int)(192 * m[3]));
+                    glDrawArrays(GL_TRIANGLES, 0, 2*3);
+                    glDisable(GL_BLEND);
+                    glUseProgram(0);
+                }
+            }
         }
 
         int cx, cy;

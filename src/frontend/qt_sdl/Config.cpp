@@ -106,6 +106,8 @@ DefaultList<bool> DefaultBools =
     {"3D.GL.HiresCoordinates", true},
     {"LimitFPS", true},
     {"SaveTurbo", true},
+    {"HMMineMarkers", true},
+    {"HMMineLevelSelect", true},
     {"Instance*.Window*.ShowOSD", true},
     {"Emu.DirectBoot", true},
     {"Instance*.DS.Battery.LevelOkay", true},

@@ -108,6 +108,13 @@ protected:
     // host (logical pixel) position of the cursor's tip; false if hidden
     bool getCursorPos(int& x, int& y);
 
+    // Harvest Moon mine helper overlay for the top screen (drawn at 2x: 512x384)
+    QImage hmOverlay;
+    unsigned hmOverlayVersion = ~0u;
+    bool hmOverlayVisible = false;
+    // rebuilds hmOverlay from the emu instance state; returns true if it changed
+    bool updateHMOverlay();
+
     ScreenLayout layout;
     float screenMatrix[kMaxScreenTransforms][6];
     int screenKind[kMaxScreenTransforms];
@@ -250,6 +257,7 @@ private:
     GLint osdScaleFactorULoc;
     GLint osdTexScaleULoc;
     GLuint cursorTexture = 0;
+    GLuint hmOverlayTexture = 0;
     GLuint osdVertexArray;
     GLuint osdVertexBuffer;
     std::map<unsigned int, GLuint> osdTextures;

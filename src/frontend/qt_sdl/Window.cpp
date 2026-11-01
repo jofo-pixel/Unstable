@@ -664,6 +664,22 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
                 emuInstance->doSaveTurbo = checked;
                 globalCfg.SetBool("SaveTurbo", checked);
             });
+
+            menu->addSeparator();
+            actHMMineMarkers = menu->addAction("Harvest Moon: mine floor markers");
+            actHMMineMarkers->setCheckable(true);
+            connect(actHMMineMarkers, &QAction::triggered, this, [this](bool checked)
+            {
+                emuInstance->hmMineMarkers = checked;
+                globalCfg.SetBool("HMMineMarkers", checked);
+            });
+            actHMMineLevelSelect = menu->addAction("Harvest Moon: choose level at stairs");
+            actHMMineLevelSelect->setCheckable(true);
+            connect(actHMMineLevelSelect, &QAction::triggered, this, [this](bool checked)
+            {
+                emuInstance->hmMineLevelSelect = checked;
+                globalCfg.SetBool("HMMineLevelSelect", checked);
+            });
         }
         {
             QMenu * menu = menubar->addMenu("Help");
@@ -782,6 +798,8 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
         actLimitFramerate->setChecked(emuInstance->doLimitFPS);
         actAudioSync->setChecked(emuInstance->doAudioSync);
         actSaveTurbo->setChecked(emuInstance->doSaveTurbo);
+        actHMMineMarkers->setChecked(emuInstance->hmMineMarkers);
+        actHMMineLevelSelect->setChecked(emuInstance->hmMineLevelSelect);
 
         if (emuInstance->instanceID > 0)
         {

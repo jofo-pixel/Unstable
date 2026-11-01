@@ -94,6 +94,8 @@ EmuInstance::EmuInstance(int inst) : deleting(false),
 
     doLimitFPS = globalCfg.GetBool("LimitFPS");
     doSaveTurbo = globalCfg.GetBool("SaveTurbo");
+    hmMineMarkers = globalCfg.GetBool("HMMineMarkers");
+    hmMineLevelSelect = globalCfg.GetBool("HMMineLevelSelect");
 
     double val = globalCfg.GetDouble("TargetFPS");
     if (val == 0.0)
