@@ -2,7 +2,7 @@
     Harvest Moon DS (EU, ABCP) mine helper for this melonDS fork.
 
     1. Floor indicator: tints the mine floor cells that hide something
-       (hole, stairs, cursed item) and rocks that contain Mystril / Mythic Stone.
+       (hole, stairs, cursed item) and rocks that contain Mythic Stone or Adamantite.
     2. Level selection on the stairs down: the patched ROM posts a request
        (REQ = default target) and waits; the frontend shows a selector and
        answers with the chosen level (ANS).
@@ -19,7 +19,7 @@
 namespace HMMine
 {
 
-enum CellKind { Kind_Hole = 0, Kind_Stairs, Kind_Cursed, Kind_Ore, Kind_MAX };
+enum CellKind { Kind_Hole = 0, Kind_Stairs, Kind_Cursed, Kind_Ore, Kind_Adamant, Kind_MAX };
 
 struct Cell
 {

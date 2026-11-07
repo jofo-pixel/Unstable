@@ -35,8 +35,10 @@ static const u16 kIdStairs    = 0x1002;
 static const u16 kIdCursedTool= 0x1003;
 static const u16 kIdCursedAcc = 0x1004;
 // rock content ids
-static const u16 kIdMystril   = 0x39;
+// (item ids, read from the in-game item menu: 0x34 copper, 0x35 silver, 0x36 gold, 0x37 agate, 0x38 fluorite,
+//  0x39 mystrile, 0x3A orichalc, 0x3B pirate treasure, 0x3C mythic stone, 0x3D adamantite, 0x3E moon stone)
 static const u16 kIdMythic    = 0x3C;
+static const u16 kIdAdamant   = 0x3D;
 
 static const int kMaxLevel[4] = { 10, 255, 999, 65535 };
 
@@ -173,7 +175,8 @@ bool Helper::update(u8* ram, u32 mask, u8* itcm, bool isHMEU, bool indicatorOn, 
             if (kind < 0 && hi >= 2 && hi <= 0xF && isRAM(rock))
             {
                 u16 id = rd16(ram, mask, rock + (hi - 2) * 2);
-                if (id == kIdMystril || id == kIdMythic) kind = Kind_Ore;
+                if (id == kIdMythic) kind = Kind_Ore;
+                else if (id == kIdAdamant) kind = Kind_Adamant;
             }
             if (kind < 0) continue;
 

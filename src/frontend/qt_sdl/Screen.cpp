@@ -216,11 +216,13 @@ bool ScreenPanel::updateHMOverlay()
     QPainter p(&hmOverlay);
     p.scale(2.0, 2.0);
 
-    // subtle tints: hole, stairs, cursed item, mystic ore
+    // subtle tints: hole, stairs, cursed item, mythic stone, adamantite
     static const QColor fill[HMMine::Kind_MAX] = {
-        QColor(30, 30, 30, 95), QColor(255, 225, 80, 70), QColor(230, 40, 40, 70), QColor(60, 220, 90, 70) };
+        QColor(30, 30, 30, 95), QColor(255, 225, 80, 70), QColor(230, 40, 40, 70), QColor(60, 220, 90, 70),
+        QColor(110, 200, 255, 75) };
     static const QColor edge[HMMine::Kind_MAX] = {
-        QColor(30, 30, 30, 140), QColor(255, 225, 80, 120), QColor(230, 40, 40, 120), QColor(60, 220, 90, 120) };
+        QColor(30, 30, 30, 140), QColor(255, 225, 80, 120), QColor(230, 40, 40, 120), QColor(60, 220, 90, 120),
+        QColor(110, 200, 255, 130) };
 
     for (const auto& c : st.cells)
     {
